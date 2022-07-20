@@ -2,6 +2,7 @@ package com.nrlee.batch.job.wine.v1;
 
 import javax.annotation.Resource;
 
+import com.nrlee.batch.util.JobCompletionNotificationListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -14,6 +15,8 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Slf4j
 @ConditionalOnProperty(name = "job.name", havingValue = WineCreateBatch.JOB_NAME)
@@ -26,6 +29,8 @@ public class WineCreateBatch {
     private ItemReader<Long> itemReader;
     @Resource(name = "WineItemWriterImpl")
     private ItemWriter<Long> itemWriter;
+    private final JobCompletionNotificationListener jobCompletionNotificationListener;
+
 
     @Bean
     private Job WineCreateBatchJob() {
@@ -33,6 +38,7 @@ public class WineCreateBatch {
         return jobBuilderFactory.get(JOB_NAME)
                 .start(createIndex())
                 .next(bulkWineForCreateStep())
+                .listener(jobCompletionNotificationListener)
                 .build();
     }
 
@@ -56,6 +62,18 @@ public class WineCreateBatch {
                 .<Long, Long>chunk(batchSize)
                 .reader(itemReader)
                 .writer(itemWriter)
+                .taskExecutor(executor(0))
+                .throttleLimit(0)
                 .build();
+    }
+
+    public TaskExecutor executor(int poolSize) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(poolSize);
+        executor.setMaxPoolSize(poolSize);
+        executor.setThreadNamePrefix("multi-thread-");
+        executor.setWaitForTasksToCompleteOnShutdown(Boolean.TRUE);
+        executor.initialize();
+        return executor;
     }
 }
