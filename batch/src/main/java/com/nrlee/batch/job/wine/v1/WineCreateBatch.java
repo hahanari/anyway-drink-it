@@ -8,41 +8,46 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.task.TaskExecutor;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Slf4j
 @ConditionalOnProperty(name = "job.name", havingValue = WineCreateBatch.JOB_NAME)
 @RequiredArgsConstructor
 public class WineCreateBatch {
     static final String JOB_NAME = "WineCreateBatch";
+
+    private final int poolSize = 2;
+    private int chunkSize = 10;
+
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     @Resource(name = "WineItemReaderImpl")
     private ItemReader<Long> itemReader;
     @Resource(name = "WineItemWriterImpl")
     private ItemWriter<Long> itemWriter;
+
+    @Resource(name = "transactionManager")
+    private final PlatformTransactionManager transactionManager;
     private final JobCompletionNotificationListener jobCompletionNotificationListener;
 
 
     @Bean
-    private Job WineCreateBatchJob() {
+    public Job WineCreateBatchJob() {
         log.info("WineCreateBatchJob");
-        return jobBuilderFactory.get(JOB_NAME)
+        return this.jobBuilderFactory.get(JOB_NAME)
                 .start(createIndex())
                 .next(bulkWineForCreateStep())
                 .listener(jobCompletionNotificationListener)
                 .build();
     }
 
-    private Step createIndex() {
+    public Step createIndex() {
         log.info("createIndex");
         return stepBuilderFactory.get("createIndex")
                 .tasklet((contribution, chunkContext) -> {
@@ -52,28 +57,14 @@ public class WineCreateBatch {
                 .build();
     }
 
-    @Bean
-    @JobScope
-    private Step bulkWineForCreateStep() {
+    public Step bulkWineForCreateStep() {
         log.info("bulkWineForCreateStep");
-        int batchSize = 10;
         return stepBuilderFactory
                 .get("bulkWineForCreateStep")
-                .<Long, Long>chunk(batchSize)
+                .transactionManager(transactionManager)
+                .<Long, Long>chunk(chunkSize)
                 .reader(itemReader)
                 .writer(itemWriter)
-                .taskExecutor(executor(0))
-                .throttleLimit(0)
                 .build();
-    }
-
-    public TaskExecutor executor(int poolSize) {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(poolSize);
-        executor.setMaxPoolSize(poolSize);
-        executor.setThreadNamePrefix("multi-thread-");
-        executor.setWaitForTasksToCompleteOnShutdown(Boolean.TRUE);
-        executor.initialize();
-        return executor;
     }
 }
