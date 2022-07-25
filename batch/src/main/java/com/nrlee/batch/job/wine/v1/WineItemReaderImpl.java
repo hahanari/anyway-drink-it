@@ -1,14 +1,22 @@
 package com.nrlee.batch.job.wine.v1;
 
-import java.util.List;
-
-import org.springframework.batch.item.ItemWriter;
+import com.nrlee.batch.application.WineService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.NonTransientResourceException;
+import org.springframework.batch.item.ParseException;
+import org.springframework.batch.item.UnexpectedInputException;
 import org.springframework.stereotype.Component;
 
 @Component
-public class WineItemReaderImpl implements ItemWriter<Long> {
-    @Override
-    public void write(List<? extends Long> items) throws Exception {
+@RequiredArgsConstructor
+public class WineItemReaderImpl implements ItemReader<Long> {
 
+    WineService wineService;
+
+    @Override
+    public Long read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
+
+        return null;
     }
 }
