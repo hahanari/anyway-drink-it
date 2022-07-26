@@ -14,24 +14,22 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Slf4j
+@Configuration
 @ConditionalOnProperty(name = "job.name", havingValue = WineCreateBatch.JOB_NAME)
 @RequiredArgsConstructor
 public class WineCreateBatch {
     static final String JOB_NAME = "WineCreateBatch";
-
-    private final int poolSize = 2;
     private int chunkSize = 10;
-
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
-    @Resource(name = "WineItemReaderImpl")
-    private ItemReader<Long> itemReader;
-    @Resource(name = "WineItemWriterImpl")
-    private ItemWriter<Long> itemWriter;
-
+    @Resource(name = "wineItemReaderImpl")
+    private ItemReader itemReader;
+    @Resource(name = "wineItemWriterImpl")
+    private ItemWriter itemWriter;
     @Resource(name = "transactionManager")
     private final PlatformTransactionManager transactionManager;
     private final JobCompletionNotificationListener jobCompletionNotificationListener;
@@ -47,6 +45,7 @@ public class WineCreateBatch {
                 .build();
     }
 
+    @Bean
     public Step createIndex() {
         log.info("createIndex");
         return stepBuilderFactory.get("createIndex")
@@ -57,6 +56,7 @@ public class WineCreateBatch {
                 .build();
     }
 
+    @Bean
     public Step bulkWineForCreateStep() {
         log.info("bulkWineForCreateStep");
         return stepBuilderFactory
