@@ -11,7 +11,7 @@ public class WineService {
 
     WineRepository wineRepository;
 
-    public List<Wine> getWine(int id) {
-        return wineRepository.findAllById(id);
+    public List<Wine> getAllWine() {
+        return wineRepository.findAll();
     }
 }
