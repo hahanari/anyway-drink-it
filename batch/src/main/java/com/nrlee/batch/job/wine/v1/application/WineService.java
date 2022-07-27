@@ -1,9 +1,9 @@
-package com.nrlee.batch.application;
+package com.nrlee.batch.job.wine.v1.application;
 
 import java.util.List;
 
-import com.nrlee.batch.domain.Wine;
-import com.nrlee.batch.domain.WineRepository;
+import com.nrlee.batch.job.wine.v1.domain.Wine;
+import com.nrlee.batch.job.wine.v1.repository.WineRepository;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

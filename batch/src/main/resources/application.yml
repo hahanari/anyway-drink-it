@@ -1,13 +1,11 @@
 spring:
-  main:
-    allow-bean-definition-overriding: true
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/nrlee?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
-    password: leenari1004!!
+      url: jdbc:mysql://localhost:3306/nrlee
+      username: root
+      password: leenari1004!!
+      driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
-    open-in-view: false # open-in-view: 영속성을 프레젠테이션 레이어까지 가져간다.
+    open-in-view: false
     show-sql: true
     hibernate:
       ddl-auto: none

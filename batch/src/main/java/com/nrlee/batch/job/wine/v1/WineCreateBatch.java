@@ -1,21 +1,24 @@
 package com.nrlee.batch.job.wine.v1;
 
-import javax.annotation.Resource;
+import java.util.Collections;
 
-import com.nrlee.batch.util.JobCompletionNotificationListener;
+import com.nrlee.batch.job.wine.v1.domain.Wine;
+import com.nrlee.batch.job.wine.v1.repository.WineRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.data.RepositoryItemReader;
+import org.springframework.batch.item.data.builder.RepositoryItemReaderBuilder;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.data.domain.Sort;
 
 @Slf4j
 @Configuration
@@ -23,48 +26,58 @@ import org.springframework.transaction.PlatformTransactionManager;
 @RequiredArgsConstructor
 public class WineCreateBatch {
     static final String JOB_NAME = "WineCreateBatch";
-    private int chunkSize = 10;
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
-    @Resource(name = "wineItemReaderImpl")
-    private ItemReader itemReader;
-    @Resource(name = "wineItemWriterImpl")
-    private ItemWriter itemWriter;
-    @Resource(name = "transactionManager")
-    private final PlatformTransactionManager transactionManager;
-    private final JobCompletionNotificationListener jobCompletionNotificationListener;
+    private final WineRepository wineRepository;
+    private static final int chunkSize = 10;
 
 
     @Bean
-    public Job WineCreateBatchJob() {
+    public Job WineCreateBatchJob() throws Exception {
         log.info("WineCreateBatchJob");
         return this.jobBuilderFactory.get(JOB_NAME)
                 .start(createIndex())
-                .next(bulkWineForCreateStep())
-                .listener(jobCompletionNotificationListener)
+                .next(bulkWine())
                 .build();
     }
 
     @Bean
     public Step createIndex() {
-        log.info("createIndex");
         return stepBuilderFactory.get("createIndex")
                 .tasklet((contribution, chunkContext) -> {
                     // TODO: ES 호출 - 인덱스 생성
+                    log.info("createIndex");
                     return RepeatStatus.FINISHED;
                 })
                 .build();
     }
 
     @Bean
-    public Step bulkWineForCreateStep() {
-        log.info("bulkWineForCreateStep");
-        return stepBuilderFactory
-                .get("bulkWineForCreateStep")
-                .transactionManager(transactionManager)
-                .<Long, Long>chunk(chunkSize)
-                .reader(itemReader)
-                .writer(itemWriter)
+    public Step bulkWine() throws Exception {
+        return stepBuilderFactory.get("bulkWine")
+                .<Wine, Wine>chunk(chunkSize)
+                .reader(repositoryItemReader())
+                .writer(jpaPagingItemWriter())
                 .build();
+    }
+
+    @Bean
+    @StepScope
+    public RepositoryItemReader<Wine> repositoryItemReader() {
+        return new RepositoryItemReaderBuilder<Wine>()
+                .repository(wineRepository)
+                .methodName("findAll")
+                .pageSize(chunkSize)
+                .name("repositoryItemReader")
+                .sorts(Collections.singletonMap("id", Sort.Direction.ASC))
+                .build();
+    }
+
+    private ItemWriter<Wine> jpaPagingItemWriter() {
+        return list -> {
+            for (Wine wine: list) {
+                log.info("Current Wine={}", wine);
+            }
+        };
     }
 }
