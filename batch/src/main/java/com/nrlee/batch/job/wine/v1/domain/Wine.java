@@ -1,4 +1,4 @@
-package com.nrlee.batch.domain;
+package com.nrlee.batch.job.wine.v1.domain;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
