@@ -1,0 +1,45 @@
+{
+  "settings": {
+    "index": {
+      "number_of_replicas": 1,
+      "refresh_interval" : "3s",
+      "max_result_window": "10000000",
+      "max_ngram_diff": 1000
+    },
+    "analysis": {
+      "analyzer": {
+        "search_index_ngram": {
+          "filter": [
+            "lowercase"
+          ],
+          "tokenizer": "ngram_tokenizer"
+        },
+        "search_query_ngram": {
+          "filter": [
+            "lowercase"
+          ],
+          "tokenizer": "standard"
+        },
+        "search_query_keyword": {
+          "filter": [
+            "lowercase",
+            "trim"
+          ],
+          "type": "custom",
+          "tokenizer": "keyword"
+        }
+      },
+      "tokenizer": {
+        "ngram_tokenizer": {
+          "token_chars": [
+            "letter",
+            "digit"
+          ],
+          "min_gram": "1",
+          "type": "ngram",
+          "max_gram": "10"
+        }
+      }
+    }
+  }
+}
