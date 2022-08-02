@@ -25,6 +25,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.batch:spring-batch-test'
 
+    implementation group: 'org.elasticsearch', name: 'elasticsearch', version: '7.5.2'
+    implementation group: 'org.elasticsearch.client', name: 'elasticsearch-rest-high-level-client', version: '7.5.2'
+    implementation group: 'org.elasticsearch.client', name: 'elasticsearch-rest-client', version: '7.5.2'
+
 }
 
 tasks.named('test') {
