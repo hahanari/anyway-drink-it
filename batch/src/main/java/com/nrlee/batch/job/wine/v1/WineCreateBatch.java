@@ -2,6 +2,7 @@ package com.nrlee.batch.job.wine.v1;
 
 import java.util.Collections;
 
+import com.nrlee.batch.config.UniqueRunIdIncrementer;
 import com.nrlee.batch.constant.IndexEnum;
 import com.nrlee.batch.helper.IndexHelper;
 import com.nrlee.batch.job.wine.v1.domain.Wine;
@@ -41,6 +42,7 @@ public class WineCreateBatch {
         log.info("wineCreateBatchJob");
         return this.jobBuilderFactory.get(JOB_NAME)
                 .start(createIndex(indexEnum))
+                .incrementer(new UniqueRunIdIncrementer())
                 .next(bulkWine())
                 .build();
     }

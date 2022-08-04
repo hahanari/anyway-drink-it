@@ -1,5 +1,7 @@
 package com.nrlee.batch.helper;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,6 +25,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class IndexHelper {
 
+    public static final String DATETIME_FORMAT_YYYYMMDDHHMM = "yyyyMMddHHmm";
+
     private final AsyncFileUtil asyncFileUtil;
 
     public void createIndex(IndexEnum indexEnum) throws Exception {
@@ -31,7 +35,10 @@ public class IndexHelper {
                 RestClient.builder(
                         new HttpHost("localhost", 9200, "http")));
 
-        CreateIndexRequest request = new CreateIndexRequest(indexEnum.getReadAlias());
+        final String indexNameSuffix = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATETIME_FORMAT_YYYYMMDDHHMM));
+        final String indexName = indexEnum.getReadAlias() + "-" + indexNameSuffix;
+
+        CreateIndexRequest request = new CreateIndexRequest(indexName);
         request.alias(new Alias(indexEnum.getWriteAlias()));
 
         asyncFileUtil.getFileContent(indexEnum.getSettingJsonPath(), (settings) -> {
