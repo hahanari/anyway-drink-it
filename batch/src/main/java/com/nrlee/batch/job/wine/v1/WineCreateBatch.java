@@ -2,6 +2,8 @@ package com.nrlee.batch.job.wine.v1;
 
 import java.util.Collections;
 
+import javax.annotation.Resource;
+
 import com.nrlee.batch.config.UniqueRunIdIncrementer;
 import com.nrlee.batch.constant.IndexEnum;
 import com.nrlee.batch.helper.IndexHelper;
@@ -34,6 +36,9 @@ public class WineCreateBatch {
     private final WineRepository wineRepository;
     private final IndexHelper indexHelper;
     private final IndexEnum indexEnum = IndexEnum.WINE;
+
+    @Resource(name = "wineItemWriterImpl")
+    private ItemWriter itemWriter;
     private static final int chunkSize = 10;
 
 
@@ -63,7 +68,7 @@ public class WineCreateBatch {
         return stepBuilderFactory.get("bulkWine")
                 .<Wine, Wine>chunk(chunkSize)
                 .reader(repositoryItemReader())
-                .writer(jpaPagingItemWriter())
+                .writer(itemWriter)
                 .build();
     }
 
