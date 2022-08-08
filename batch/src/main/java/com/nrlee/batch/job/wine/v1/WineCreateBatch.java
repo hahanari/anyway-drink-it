@@ -2,6 +2,11 @@ package com.nrlee.batch.job.wine.v1;
 
 import java.util.Collections;
 
+import javax.annotation.Resource;
+
+import com.nrlee.batch.config.UniqueRunIdIncrementer;
+import com.nrlee.batch.constant.IndexEnum;
+import com.nrlee.batch.helper.IndexHelper;
 import com.nrlee.batch.job.wine.v1.domain.Wine;
 import com.nrlee.batch.job.wine.v1.repository.WineRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,24 +34,29 @@ public class WineCreateBatch {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final WineRepository wineRepository;
+    private final IndexHelper indexHelper;
+    private final IndexEnum indexEnum = IndexEnum.WINE;
+
+    @Resource(name = "wineItemWriterImpl")
+    private ItemWriter itemWriter;
     private static final int chunkSize = 10;
 
 
     @Bean
-    public Job WineCreateBatchJob() throws Exception {
-        log.info("WineCreateBatchJob");
+    public Job wineCreateBatchJob() throws Exception {
+        log.info("wineCreateBatchJob");
         return this.jobBuilderFactory.get(JOB_NAME)
-                .start(createIndex())
+                .start(createIndex(indexEnum))
+                .incrementer(new UniqueRunIdIncrementer())
                 .next(bulkWine())
                 .build();
     }
 
-    @Bean
-    public Step createIndex() {
+    public Step createIndex(IndexEnum indexEnum) {
+        log.info("createIndex");
         return stepBuilderFactory.get("createIndex")
                 .tasklet((contribution, chunkContext) -> {
-                    // TODO: ES 호출 - 인덱스 생성
-                    log.info("createIndex");
+                    indexHelper.createIndex(indexEnum);
                     return RepeatStatus.FINISHED;
                 })
                 .build();
@@ -54,16 +64,18 @@ public class WineCreateBatch {
 
     @Bean
     public Step bulkWine() throws Exception {
+        log.info("bulkWine");
         return stepBuilderFactory.get("bulkWine")
                 .<Wine, Wine>chunk(chunkSize)
                 .reader(repositoryItemReader())
-                .writer(jpaPagingItemWriter())
+                .writer(itemWriter)
                 .build();
     }
 
     @Bean
     @StepScope
     public RepositoryItemReader<Wine> repositoryItemReader() {
+        log.info("repositoryItemReader");
         return new RepositoryItemReaderBuilder<Wine>()
                 .repository(wineRepository)
                 .methodName("findAll")
@@ -71,13 +83,5 @@ public class WineCreateBatch {
                 .name("repositoryItemReader")
                 .sorts(Collections.singletonMap("id", Sort.Direction.ASC))
                 .build();
-    }
-
-    private ItemWriter<Wine> jpaPagingItemWriter() {
-        return list -> {
-            for (Wine wine: list) {
-                log.info("Current Wine={}", wine);
-            }
-        };
     }
 }
