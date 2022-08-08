@@ -84,13 +84,4 @@ public class WineCreateBatch {
                 .sorts(Collections.singletonMap("id", Sort.Direction.ASC))
                 .build();
     }
-
-    private ItemWriter<Wine> jpaPagingItemWriter() {
-        log.info("jpaPagingItemWriter");
-        return list -> {
-            for (Wine wine: list) {
-                log.info("Current Wine={}", wine);
-            }
-        };
-    }
 }
