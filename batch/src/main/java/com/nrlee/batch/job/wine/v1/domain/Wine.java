@@ -7,6 +7,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import com.nrlee.batch.vo.IndexBulk;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Table(name = "wine")
 @Data
-public class Wine {
+public class Wine implements IndexBulk {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,5 +23,10 @@ public class Wine {
 
     @Column(length = 20, nullable = false)
     private String name;
+
+    @Override
+    public String getIndexBulkKey() {
+        return String.valueOf(this.id);
+    }
 
 }

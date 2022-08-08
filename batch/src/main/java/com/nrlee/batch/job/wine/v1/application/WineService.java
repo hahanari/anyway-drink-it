@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WineService {
 
-    WineRepository wineRepository;
+    private final WineRepository wineRepository;
 
     public List<Wine> getAllWine() {
         return wineRepository.findAll();
