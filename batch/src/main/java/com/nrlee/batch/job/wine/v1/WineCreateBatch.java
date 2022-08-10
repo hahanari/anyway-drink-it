@@ -51,6 +51,7 @@ public class WineCreateBatch {
                 .next(setRefreshInterval("3s"))
                 .next(bulkWine())
                 .next(setRefreshInterval("30s"))
+                .next(rebindReadAlias())
                 .build();
     }
 
@@ -81,6 +82,16 @@ public class WineCreateBatch {
                 .<Wine, Wine>chunk(chunkSize)
                 .reader(repositoryItemReader())
                 .writer(itemWriter)
+                .build();
+    }
+
+    public Step rebindReadAlias() {
+        log.info("setReadAlias");
+        return stepBuilderFactory.get("setReadAlias")
+                .tasklet((contribution, chunkContext) -> {
+                    indexHelper.rebindReadAlias(indexEnum);
+                    return RepeatStatus.FINISHED;
+                })
                 .build();
     }
 
