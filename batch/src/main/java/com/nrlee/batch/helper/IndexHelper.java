@@ -17,12 +17,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.springframework.stereotype.Component;
 
@@ -38,7 +40,9 @@ public class IndexHelper {
 
         RestHighLevelClient client = new RestHighLevelClient(
                 RestClient.builder(
-                        new HttpHost("localhost", 9200, "http")));
+                        new HttpHost("localhost", 9200, "http")
+                )
+        );
 
         final String indexNameSuffix = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATETIME_FORMAT_YYYYMMDDHHMM));
         final String indexName = indexEnum.getReadAlias() + "-" + indexNameSuffix;
@@ -64,6 +68,24 @@ public class IndexHelper {
         client.close();
     }
 
+    public void setRefreshInterval(IndexEnum indexEnum, String interval) throws IOException {
+
+        RestHighLevelClient client = new RestHighLevelClient(
+                RestClient.builder(
+                        new HttpHost("localhost", 9200, "http")
+                )
+        );
+
+        UpdateSettingsRequest request = new UpdateSettingsRequest(indexEnum.getWriteAlias());
+        String settingKey = "index.refresh_interval";
+        Settings settings = Settings.builder()
+                .put(settingKey, interval)
+                .build();
+        request.settings(settings);
+
+        client.indices().putSettings(request, RequestOptions.DEFAULT);
+    }
+
     public void bulk(List<? extends IndexBulk> bulkList, String writeIndex) throws IOException {
         BulkRequest bulkRequest = new BulkRequest();
         ObjectMapper mapper = new ObjectMapper();
@@ -86,25 +108,6 @@ public class IndexHelper {
                         new HttpHost("localhost", 9200, "http")));
 
         client.bulk(bulkRequest, RequestOptions.DEFAULT);
-/*        client.bulkAsync(bulkRequest, RequestOptions.DEFAULT, new ActionListener<BulkResponse>() {
-            @Override
-            public void onResponse(BulkResponse bulkResponse) {
-                final BulkItemResponse[] items = bulkResponse.getItems();
-                for (BulkItemResponse bulkItemResponse : items) {
-                    final BulkItemResponse.Failure failure = bulkItemResponse.getFailure();
-
-                    if (failure != null) {
-                        final String index = failure.getIndex();
-                        final String failureMessage = bulkItemResponse.getFailureMessage();
-                        log.error("bulk onResponse index: {}, failureMessage: {}", index, failureMessage);
-                    }
-                }
-            }
-            @Override
-            public void onFailure(Exception e) {
-                log.error(e.getMessage());
-            }
-        });*/
         client.close();
     }
 

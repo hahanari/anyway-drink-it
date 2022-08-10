@@ -46,17 +46,29 @@ public class WineCreateBatch {
     public Job wineCreateBatchJob() throws Exception {
         log.info("wineCreateBatchJob");
         return this.jobBuilderFactory.get(JOB_NAME)
-                .start(createIndex(indexEnum))
+                .start(createIndex())
                 .incrementer(new UniqueRunIdIncrementer())
+                .next(setRefreshInterval("3s"))
                 .next(bulkWine())
+                .next(setRefreshInterval("30s"))
                 .build();
     }
 
-    public Step createIndex(IndexEnum indexEnum) {
+    public Step createIndex() {
         log.info("createIndex");
         return stepBuilderFactory.get("createIndex")
                 .tasklet((contribution, chunkContext) -> {
                     indexHelper.createIndex(indexEnum);
+                    return RepeatStatus.FINISHED;
+                })
+                .build();
+    }
+
+    public Step setRefreshInterval(String interval) {
+        log.info("setRefreshInterval");
+        return stepBuilderFactory.get("setRefreshInterval")
+                .tasklet((contribution, chunkContext) -> {
+                    indexHelper.setRefreshInterval(indexEnum, interval);
                     return RepeatStatus.FINISHED;
                 })
                 .build();
