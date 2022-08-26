@@ -1,7 +1,6 @@
 package com.nrlee.batch.job.wine.v1;
 
 import java.util.Collections;
-
 import javax.annotation.Resource;
 
 import com.nrlee.batch.config.UniqueRunIdIncrementer;
@@ -12,6 +11,8 @@ import com.nrlee.batch.job.wine.v1.repository.WineRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
@@ -46,17 +47,31 @@ public class WineCreateBatch {
     public Job wineCreateBatchJob() throws Exception {
         log.info("wineCreateBatchJob");
         return this.jobBuilderFactory.get(JOB_NAME)
-                .start(createIndex(indexEnum))
+                .start(createIndex())
                 .incrementer(new UniqueRunIdIncrementer())
+                .next(setRefreshInterval("3s"))
                 .next(bulkWine())
+                .next(setRefreshInterval("30s"))
+                .next(rebindReadAlias())
+                .listener(listener())
                 .build();
     }
 
-    public Step createIndex(IndexEnum indexEnum) {
+    public Step createIndex() {
         log.info("createIndex");
         return stepBuilderFactory.get("createIndex")
                 .tasklet((contribution, chunkContext) -> {
                     indexHelper.createIndex(indexEnum);
+                    return RepeatStatus.FINISHED;
+                })
+                .build();
+    }
+
+    public Step setRefreshInterval(String interval) {
+        log.info("setRefreshInterval");
+        return stepBuilderFactory.get("setRefreshInterval")
+                .tasklet((contribution, chunkContext) -> {
+                    indexHelper.setRefreshInterval(indexEnum, interval);
                     return RepeatStatus.FINISHED;
                 })
                 .build();
@@ -72,6 +87,16 @@ public class WineCreateBatch {
                 .build();
     }
 
+    public Step rebindReadAlias() {
+        log.info("setReadAlias");
+        return stepBuilderFactory.get("setReadAlias")
+                .tasklet((contribution, chunkContext) -> {
+                    indexHelper.rebindReadAlias(indexEnum);
+                    return RepeatStatus.FINISHED;
+                })
+                .build();
+    }
+
     @Bean
     @StepScope
     public RepositoryItemReader<Wine> repositoryItemReader() {
@@ -83,5 +108,21 @@ public class WineCreateBatch {
                 .name("repositoryItemReader")
                 .sorts(Collections.singletonMap("id", Sort.Direction.ASC))
                 .build();
+    }
+
+    @Bean
+    public JobExecutionListener listener() {
+        return new JobExecutionListener() {
+            @Override
+            public void beforeJob(JobExecution jobExecution) {
+                log.warn("Job Start !!!");
+            }
+
+            @Override
+            public void afterJob(JobExecution jobExecution) {
+                log.warn("Job End !!!");
+                System.exit(1);
+            }
+        };
     }
 }
